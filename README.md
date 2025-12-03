@@ -209,7 +209,7 @@ src
 
 ---
 
-### 📌 6. Additional Notes & Improvements
+### 📌 5. Additional Notes & Improvements
 
  Framework successfully supports multi-tab handling.
 - Dropdown selection is fully dynamic.
@@ -223,7 +223,7 @@ src
 - Element locators and interactions are optimized to reduce test flakiness.
 - Framework is structured for easy expansion to new Insider modules or job domains.
 ---
-### 📌 7. Conclusion
+### 📌 6. Conclusion
 
 This full automation suite provides reliable coverage for Insider’s Home Page, Careers Page, and QA Hiring workflow, validating:
 
