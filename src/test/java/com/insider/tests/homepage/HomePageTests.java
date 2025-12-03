@@ -1,27 +1,31 @@
-package com.insider.tests.HomePage;
+package com.insider.tests.homepage;
 
-import com.insider.base.BasePage;
+import com.insider.base.BaseTest;
+import com.insider.pages.homepage.InsiderHomePage;
+import com.insider.utilities.StepInit;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Story;
 import org.testng.annotations.Test;
 
-import static com.insider.utilities.StepInit.INSIDER_HOME_PAGE;
 
 @Epic("Verify Navigation Tab Item Tests")
 @Feature("Navigation Tab Item Functionality")
 @Story("Checking Navigation And Sub Items")
-public class HomePageTests extends BasePage {
+public class HomePageTests extends BaseTest {
 
     @Description("Verify that all required sections on the Insider Home Page are displayed correctly.")
     @Test(testName = "Verify Home Page Sections are Visible")
     public void verifyNavigationHomePage_Case_1() {
         navigateToUrl();
 
-        INSIDER_HOME_PAGE
+        StepInit.get(InsiderHomePage.class)
                 .verifyHomePageSections();
     }
+
+
+/*
 
     @Description("Verify that the user can navigate from the 'Company' tab to the 'Careers' page and that all required Career Page sections are displayed correctly.")
     @Test(testName = "Verify Navigation to Careers Page and Validate Page Sections")
@@ -32,7 +36,7 @@ public class HomePageTests extends BasePage {
 
         navigateToUrl();
 
-        INSIDER_HOME_PAGE
+       StepInit.get(InsiderHomePage.class)
                 .selectNavBarTabItem(navBarTab)
                 .selectNavBarSubItem(navBarSubTab)
                 .redirectUrlControl(navBarSubTab.toLowerCase())
@@ -49,7 +53,7 @@ public class HomePageTests extends BasePage {
 
         navigateToUrl("prod","careers/quality-assurance/");
 
-        INSIDER_HOME_PAGE
+       StepInit.get(InsiderHomePage.class)
                 .goToAllJobs()
                 .redirectUrlControl(departmentUri)
                 .selectLocation(location)
@@ -68,7 +72,7 @@ public class HomePageTests extends BasePage {
 
         navigateToUrl("prod","careers/quality-assurance/");
 
-        INSIDER_HOME_PAGE
+       StepInit.get(InsiderHomePage.class)
                 .goToAllJobs()
                 .redirectUrlControl(departmentUri)
                 .selectLocation(location)
@@ -87,13 +91,14 @@ public class HomePageTests extends BasePage {
 
         navigateToUrl("prod","careers/quality-assurance/");
 
-        INSIDER_HOME_PAGE
+       StepInit.get(InsiderHomePage.class)
                 .goToAllJobs()
                 .redirectUrlControl(departmentUri)
                 .selectLocation(location)
                 .selectDepartment(department)
                 .clickViewRoleButtonsInLoop();
     }
+*/
 
 
 }

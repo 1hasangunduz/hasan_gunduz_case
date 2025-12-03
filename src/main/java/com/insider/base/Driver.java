@@ -1,184 +1,167 @@
 package com.insider.base;
 
-
 import com.insider.configs.Configs;
 import com.insider.utilities.Log;
 import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
 import lombok.Getter;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
-import org.openqa.selenium.TimeoutException;
-import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 
 import java.io.ByteArrayInputStream;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
-
 public class Driver {
 
-    private Driver() {
-        throw new IllegalStateException("Driver class");
-    }
+    private Driver() {}
 
-    private static final ThreadLocal<WebDriver> DRIVER_TL = new ThreadLocal<>();
-    public static final Configs config = Configs.getConfigs();
-
-    private static final String START_FULL_SCREEN = "--start-fullscreen";
-    private static final String HEADLESS = "--headless";
-    private static final String INCOGNITO = "--incognito";
-    private static final String WINDOW_SIZE = "--window-size=1920,1080";
-    private static final String IGNORE_CERT_ERRORS = "--ignore-certificate-errors";
-    private static final String ALLOW_INSECURE_LOCALHOST = "--allow-insecure-localhost";
-    private static final String ACCEPT_INSECURE_CERTS = "--acceptInsecureCerts";
-    private static final String DISABLE_INFOBARS = "disable-infobars";
-    private static final String NO_SANDBOX = "--no-sandbox";
-    private static final String DISABLE_GPU = "--disable-gpu";
-    private static final String LANG_EN_US = "--lang=en_US";
-    private static final String DISABLE_POPUP_BLOCKING = "--disable-popup-blocking";
-    private static final String DISABLE_NOTIFICATIONS = "--disable-notifications";
-    private static final String DISABLE_EXTENSIONS = "--disable-extensions";
-    private static final String DISABLE_DEV_SHM_USAGE = "--disable-dev-shm-usage";
-    private static final String DISABLE_CACHE = "--disable-cache";
-    private static final String DISABLE_WEB_SECURITY = "--disable-web-security";
-    private static final String DISABLE_SITE_ISOLATION_TRIALS = "--disable-site-isolation-trials";
-    private static final String DISABLE_BROWSER_SIDE_NAVIGATION = "--disable-browser-side-navigation";
+    private static final ThreadLocal<WebDriver> DRIVER_TL = new ThreadLocal<>(); // InheritableThreadLocal değil!
+    private static final Configs config = Configs.getConfigs();
 
     @Getter
     private static String driverType;
+
+
+    private static final int SCRIPT_TIMEOUT = 7;
+    private static final int DEFAULT_TIMEOUT = 20;
+    private static final int PAGE_LOAD_TIMEOUT = 120;
+
+    /* ---------------------- DRIVER LIFE CYCLE (HK STYLE) ---------------------- */
+
+    public static WebDriver createDriver(String browser) {
+
+        WebDriver driver;
+
+        switch (browser.toLowerCase()) {
+            case "chrome" -> driver = initializeChromeDriver();
+            case "firefox" -> driver = initializeFirefoxDriver();
+            default -> driver = initializeMobileDriver(browser);
+        }
+
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(DEFAULT_TIMEOUT));
+        driver.manage().timeouts().scriptTimeout(Duration.ofSeconds(SCRIPT_TIMEOUT));
+        driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(PAGE_LOAD_TIMEOUT));
+
+        DRIVER_TL.set(driver);
+        return driver;
+    }
+
+    public static void quitDriver() {
+        WebDriver driver = DRIVER_TL.get();
+        if (driver != null) {
+            try {
+                driver.quit();
+                System.out.println("Driver quit successfully");
+            } catch (Exception e) {
+                Log.error("Error during driver.quit(): " + e.getMessage());
+            } finally {
+                DRIVER_TL.remove();
+            }
+        }
+    }
+
 
     public static void setDriverType(String driverType) {
         Driver.driverType = driverType;
     }
 
-    public static WebDriver getDriver(String browser) {
-        setDriver(browser);
-        return DRIVER_TL.get();
+    public static WebDriver getDriver() {
+        WebDriver driver = DRIVER_TL.get();
+        if (driver == null) {
+            throw new IllegalStateException("WebDriver is null! Was quit() called too early?");
+        }
+        return driver;
     }
 
-    public static void setDriver(String browser) {
-        WebDriver driver = switch (browser.toLowerCase()) {
-            case "chrome" -> initializeChromeDriver();
-            case "firefox" -> initializeFirefoxDriver();
-            default -> initializeMobileDriver(browser);
-        };
-        DRIVER_TL.set(driver);
+    @Step("Quit Driver")
+    public static void quit() {
+        try {
+            if (getDriver() != null) {
+                getDriver().quit();
+            }
+        } catch (Exception e) {
+            Log.error("Driver failed to quit: " + e.getMessage());
+        } finally {
+            DRIVER_TL.remove();
+        }
     }
 
-    @Step("Initialize Chrome Driver with options")
+    /* ---------------------- BROWSER INITIALIZERS ---------------------- */
+
     private static WebDriver initializeChromeDriver() {
         setDriverType("chrome");
-        ChromeOptions options = createChromeOptions();
-        options.addArguments(config.isHeadless() ? HEADLESS : START_FULL_SCREEN);
+        ChromeOptions options = chromeOptions();
+        options.addArguments(config.isHeadless() ? "--headless" : "--start-maximized");
         return new ChromeDriver(options);
     }
 
-    @Step("Initialize Firefox Driver with options")
     private static WebDriver initializeFirefoxDriver() {
         setDriverType("firefox");
         System.setProperty("webdriver.gecko.driver", "src/main/resources/geckodriver");
-        FirefoxOptions options = createFirefoxOptions();
-        options.addArguments(config.isHeadless() ? HEADLESS : START_FULL_SCREEN);
+        FirefoxOptions options = firefoxOptions();
+        options.addArguments(config.isHeadless() ? "--headless" : "--start-fullscreen");
         return new FirefoxDriver(options);
     }
 
-    @Step("Initialize Mobile Browser Driver with options")
     private static WebDriver initializeMobileDriver(String deviceName) {
         setDriverType(deviceName);
-        ChromeOptions options = createChromeOptions();
-        Map<String, String> mobileEmulation = new HashMap<>();
-        mobileEmulation.put("deviceName", deviceName);
-        options.setExperimentalOption("mobileEmulation", mobileEmulation);
-        options.addArguments(config.isHeadless() ? HEADLESS : START_FULL_SCREEN);
+        ChromeOptions options = chromeOptions();
+        Map<String, Object> mobile = new HashMap<>();
+        mobile.put("deviceName", deviceName);
+        options.setExperimentalOption("mobileEmulation", mobile);
         return new ChromeDriver(options);
     }
 
-    @Step("Create Chrome Options")
-    private static ChromeOptions createChromeOptions() {
+    /* ---------------------- OPTIONS ---------------------- */
+
+    private static ChromeOptions chromeOptions() {
         ChromeOptions options = new ChromeOptions();
         options.addArguments(
-                INCOGNITO,
-                WINDOW_SIZE,
-                IGNORE_CERT_ERRORS,
-                ALLOW_INSECURE_LOCALHOST,
-                ACCEPT_INSECURE_CERTS,
-                DISABLE_INFOBARS,
-                NO_SANDBOX,
-                DISABLE_GPU,
-                LANG_EN_US,
-                DISABLE_POPUP_BLOCKING,
-                DISABLE_NOTIFICATIONS,
-                DISABLE_EXTENSIONS,
-                DISABLE_DEV_SHM_USAGE,
-                DISABLE_CACHE,
-                DISABLE_WEB_SECURITY,
-                DISABLE_SITE_ISOLATION_TRIALS,
-                DISABLE_BROWSER_SIDE_NAVIGATION
+                "--incognito",
+                "--window-size=1920,1080",
+                "--ignore-certificate-errors",
+                "--disable-infobars",
+                "--disable-notifications",
+                "--disable-extensions",
+                "--disable-popup-blocking",
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-gpu",
+                "--lang=en_US"
         );
         return options;
     }
 
-    @Step("Create Firefox Options")
-    private static FirefoxOptions createFirefoxOptions() {
+    private static FirefoxOptions firefoxOptions() {
         FirefoxOptions options = new FirefoxOptions();
         options.addArguments(
                 "--private",
-                IGNORE_CERT_ERRORS,
-                ALLOW_INSECURE_LOCALHOST,
-                ACCEPT_INSECURE_CERTS,
-                DISABLE_INFOBARS,
-                NO_SANDBOX,
                 "--lang=en-US",
-                DISABLE_POPUP_BLOCKING,
-                DISABLE_NOTIFICATIONS,
-                DISABLE_EXTENSIONS,
-                DISABLE_DEV_SHM_USAGE,
-                DISABLE_WEB_SECURITY,
-                "--disable-features=IsolateOrigins,site-per-process",
-                DISABLE_SITE_ISOLATION_TRIALS,
-                DISABLE_GPU,
-                "--allowed-ips",
-                "--allow-running-insecure-content",
-                "--allow-insecure-websocket-from-https-origin",
-                "--allow-nacl-socket-api=localhost",
-                "--allow-outdated-plugins",
-                "--allow-sandbox-debugging",
-                DISABLE_CACHE
+                "--disable-notifications",
+                "--disable-extensions",
+                "--disable-gpu",
+                "--ignore-certificate-errors"
         );
         return options;
     }
 
-    public static WebDriver getDriver() {
-        return DRIVER_TL.get();
-    }
-
-
-    public static void unloadDriver() {
-        DRIVER_TL.remove();
-    }
-
+    /* ---------------------- SCREENSHOT ---------------------- */
 
     public static void takeScreenshot(String name) {
-        if (Driver.getDriver() == null) {
-            Log.error("Driver is null. Cannot capture screenshot.");
-            return;
-        }
-
         try {
-            var screenshotBytes = ((TakesScreenshot) Driver.getDriver()).getScreenshotAs(OutputType.BYTES);
-            Allure.addAttachment("Screenshot of " + name, new ByteArrayInputStream(screenshotBytes));
-            Log.pass("Screenshot taken successfully for: " + name);
-        } catch (TimeoutException e) {
-            Log.fail("Timeout while taking screenshot: " + e.getMessage());
+            if (getDriver() == null)
+                return;
+
+            byte[] screenshotBytes = ((TakesScreenshot) getDriver()).getScreenshotAs(OutputType.BYTES);
+            Allure.addAttachment("Screenshot - " + name, new ByteArrayInputStream(screenshotBytes));
+
         } catch (Exception e) {
-            Log.fail("Unexpected error while taking screenshot: " + e.getMessage());
+            Log.error("Screenshot failed: " + e.getMessage());
         }
     }
-
-
 }

@@ -3,6 +3,7 @@ package com.insider.listener;
 import com.insider.base.Driver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openqa.selenium.WebDriver;
 import org.testng.ITestContext;
 import org.testng.ITestListener;
 import org.testng.ITestResult;
@@ -43,8 +44,20 @@ public class Listener implements ITestListener {
     public void onTestFailure(ITestResult iTestResult) {
         LOGGER.info("Test Failed: " + getTestMethodName(iTestResult));
         LOGGER.error(iTestResult.getThrowable());
-        LOGGER.info(Driver.getDriver().getCurrentUrl());
-        takeScreenshot("Error Page Screenshot");
+
+        WebDriver driver = Driver.getDriver();
+
+        if (driver == null) {
+            LOGGER.warn("Driver is null at test failure. Screenshot cannot be taken.");
+            return;
+        }
+
+        try {
+            LOGGER.info("Fail URL: " + driver.getCurrentUrl());
+            takeScreenshot("Fail Screenshot");
+        } catch (Exception e) {
+            LOGGER.error("Screenshot or URL capture failed: " + e.getMessage());
+        }
     }
 
     @Override

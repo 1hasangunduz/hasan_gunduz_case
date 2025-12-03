@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
-
-<suite name="Insider Case Study" preserve-order="true">
-
-    <test name="Insider Scenario Categorized">
+<suite name="Insider Case Study">
+    <test name="All Tests" parallel="methods">
         <classes>
-            <class name="com.insider.tests.HomePage.HomePageTests"/>
+            <class name="com.insider.tests.homepage.HomePageTests"/>
+            <class name="com.insider.tests.careers.CareersPageTests"/>
+            <class name="com.insider.tests.qa_jobs.QaJobFilterTests"/>
+            <class name="com.insider.tests.qa_jobs.QaViewRoleTests"/>
         </classes>
     </test>
-
 </suite>

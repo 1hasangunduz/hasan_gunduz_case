@@ -1,14 +1,17 @@
 package com.insider.utilities;
 
-import com.insider.base.BaseTest;
-import com.insider.pages.homepage.InsiderHomePage;
-
-public class StepInit extends BaseTest {
+public final class StepInit {
 
     private StepInit() {
-        throw new IllegalStateException("Utility class");
+        throw new IllegalStateException("Utility class – cannot be instantiated.");
     }
 
-    public static final InsiderHomePage INSIDER_HOME_PAGE = new InsiderHomePage();
-
+    @SuppressWarnings("unchecked")
+    public static <T> T get(Class<T> pageClass) {
+        try {
+            return pageClass.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot create page: " + pageClass.getName(), e);
+        }
+    }
 }

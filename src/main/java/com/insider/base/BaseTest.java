@@ -1,45 +1,33 @@
 package com.insider.base;
 
-import com.insider.configs.Configs;
 import com.insider.listener.Listener;
-import com.insider.utilities.ReusableMethods;
-import io.qameta.allure.Step;
+import org.testng.ITestResult;
 import org.testng.annotations.*;
-import com.insider.utilities.Log;
-
-import java.time.Duration;
-
-import static com.insider.base.Driver.unloadDriver;
-
 
 @Listeners({Listener.class})
-public class BaseTest implements WaitConditions {
-    private static final int DEFAULT_TIMEOUT = 40;
+public class BaseTest extends BasePage {
+
+    public static final ThreadLocal<String> testNameTL = new ThreadLocal<>();
 
     @BeforeMethod(alwaysRun = true)
-    public static void setupTest() {
-        var browser = Configs.getConfigs().browser();
-        var selectedBrowser = (browser == null || browser.isEmpty()) ? "chrome" : browser;
-        Driver.setDriver(selectedBrowser);
-        Log.pass("Browser initialized: " + selectedBrowser);
-        Log.pass("Window size: " + Driver.getDriver().manage().window().getSize());
-        Driver.getDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(DEFAULT_TIMEOUT));
-    }
+    @Parameters({"browser"})
+    public void setup(@Optional("chrome") String browser, ITestResult result) {
 
+        if (result != null) {
+            testNameTL.set(result.getMethod().getMethodName());
+        }
+
+        Driver.createDriver(browser);
+
+        System.out.println("Thread: " + Thread.currentThread().getName()
+                + " - Driver: " + System.identityHashCode(Driver.getDriver()));
+    }
 
     @AfterMethod(alwaysRun = true)
-    public void tearDown() {
-        try {
-            if (Driver.getDriver() != null) {
-                Driver.getDriver().quit();
-                Log.pass("Driver quit successfully, and session ended.");
-            }
-        } catch (Exception e) {
-            Log.error("An error occurred during driver cleanup: " + e.getMessage());
-        } finally {
-            unloadDriver();
-        }
+    public void tearDown(ITestResult result) {
+        System.out.println("QUIT CALLED by thread " + Thread.currentThread().getId()
+                + " for test: " + result.getName()
+                + " | Driver hash: " + System.identityHashCode(Driver.getDriver()));
+        Driver.quitDriver();
     }
-
-
 }

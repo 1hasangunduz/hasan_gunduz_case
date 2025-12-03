@@ -3,12 +3,14 @@ package com.insider.pages.homepage;
 import com.insider.base.BasePage;
 import com.insider.base.Driver;
 import com.insider.utilities.Log;
+import com.insider.utilities.ReusableMethods;
 import io.qameta.allure.Step;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.PageFactory;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class InsiderHomePage extends BasePage {
 
@@ -123,7 +125,7 @@ public class InsiderHomePage extends BasePage {
         return this;
     }
 
-    private void clickItemByText(List<WebElement> elements, String text, String logMessage) {
+/*    private void clickItemByText(List<WebElement> elements, String text, String logMessage) {
         for (WebElement element : elements) {
             if (getTextOfElement(element).equals(text)) {
                 clickElement(element, logMessage + text);
@@ -131,6 +133,21 @@ public class InsiderHomePage extends BasePage {
             }
         }
         Log.fail("Element with text '" + text + "' not found.");
+    }*/
+
+    private void clickItemByText(List<WebElement> elements, String text, String logMessage) {
+        for (WebElement element : elements) {
+            String elementText = getTextOfElement(element);
+            if (elementText != null && elementText.trim().equals(text)) {
+                clickElement(element, logMessage + text);
+                return;
+            }
+        }
+        throw new NoSuchElementException("Navigation item not found: '" + text + "'. Available items: " +
+                elements.stream()
+                        .map(this::getTextOfElement)
+                        .filter(t -> t != null && !t.isBlank())
+                        .toList());
     }
 
     @Step("Verify redirected URL contains: {url}")
@@ -185,9 +202,6 @@ public class InsiderHomePage extends BasePage {
             Log.fail(elementName + " is NOT found on the page. Exception: " + e.getMessage());
         }
     }
-
-
-    /*******************************/
 
     public InsiderHomePage goToAllJobs() {
         clickElement(seeAllQAJobsButton, "All Jobs button clicked.");
