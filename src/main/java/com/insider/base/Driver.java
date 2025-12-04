@@ -3,7 +3,6 @@ package com.insider.base;
 import com.insider.configs.Configs;
 import com.insider.utilities.Log;
 import io.qameta.allure.Allure;
-import io.qameta.allure.Step;
 import lombok.Getter;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -20,18 +19,15 @@ public class Driver {
 
     private Driver() {}
 
-    private static final ThreadLocal<WebDriver> DRIVER_TL = new ThreadLocal<>(); // InheritableThreadLocal değil!
+    private static final ThreadLocal<WebDriver> DRIVER_TL = new ThreadLocal<>();
     private static final Configs config = Configs.getConfigs();
 
     @Getter
     private static String driverType;
 
-
     private static final int SCRIPT_TIMEOUT = 7;
     private static final int DEFAULT_TIMEOUT = 20;
     private static final int PAGE_LOAD_TIMEOUT = 120;
-
-    /* ---------------------- DRIVER LIFE CYCLE (HK STYLE) ---------------------- */
 
     public static WebDriver createDriver(String browser) {
 
@@ -56,7 +52,7 @@ public class Driver {
         if (driver != null) {
             try {
                 driver.quit();
-                System.out.println("Driver quit successfully");
+                Log.pass("Driver quit successfully");
             } catch (Exception e) {
                 Log.error("Error during driver.quit(): " + e.getMessage());
             } finally {
@@ -72,7 +68,7 @@ public class Driver {
     public static WebDriver getDriver() {
         WebDriver driver = DRIVER_TL.get();
         if (driver == null) {
-            throw new IllegalStateException("WebDriver is null! Was quit() called too early?");
+            Log.fail("WebDriver is null! Was quit() called too early?");
         }
         return driver;
     }

@@ -1,15 +1,13 @@
 package com.insider.base;
 
-import com.insider.pages.jobs.JobsPage;
-import com.insider.utilities.ConfigReader;
 import com.insider.utilities.Log;
 import com.insider.utilities.ReusableMethods;
 import io.qameta.allure.Step;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
+import org.testng.Assert;
 
 import java.time.Duration;
-import java.util.List;
 
 import static org.testng.Assert.assertEquals;
 
@@ -22,28 +20,30 @@ public class BasePage extends ReusableMethods {
      * @param url : choose url for environment (example: NoAdditionalQueues) or full url (example: /empty)
      */
     public void navigateToUrl(String env, String url) {
-        String baseUrl;
-        if (url == null || url.isEmpty()) {
-            url = ConfigReader.getProperty("NoAdditionalQueues");
-        }
-        switch (env.toLowerCase()) {
-            case "prod" -> baseUrl = "https://useinsider.com/";
-            case "preprod" -> baseUrl = "https://preprod.useinsider.com";
-            case "cloud" -> baseUrl = "https://cloud.useinsider.com";
-            case "test" -> baseUrl = "https://test.useinsider.com";
-            default -> {
-                Log.warning("Invalid environment provided: " + env);
-                return;
-            }
-        }
-        String fullUrl = baseUrl + url;
-        Driver.getDriver().get(fullUrl);
-        Driver.getDriver().manage().timeouts().pageLoadTimeout(Duration.ofSeconds(40));
-        Log.pass("Application launched! URL: " + fullUrl);
-        waitMs(3000);
-        acceptCookies();
-    }
 
+        var baseUrl = Environment.getBaseUrl(env);
+        Assert.assertNotNull(baseUrl, "Base URL is null! Check environment value: " + env);
+
+        if (url == null) {
+            url = "";
+        }
+
+        if (url.startsWith("/")) {
+            url = url.substring(1);
+        }
+
+        var fullUrl = baseUrl + "/" + url;
+
+        try {
+            Driver.getDriver().manage().timeouts().pageLoadTimeout(Duration.ofSeconds(40));
+            Driver.getDriver().get(fullUrl);
+            Log.pass("Application launched! URL: " + fullUrl);
+            waitMs(2000);
+            acceptCookies();
+        } catch (Exception e) {
+            Log.fail("Navigation failed: " + e.getMessage());
+        }
+    }
 
     @Step("Navigate to URL")
     public void navigateToUrl() {
@@ -64,6 +64,28 @@ public class BasePage extends ReusableMethods {
             Log.error("Error navigating to URL: " + e.getMessage());
         }
     }
+
+    public class Environment {
+
+        public static String getBaseUrl(String env) {
+            if (env == null || env.isEmpty()) {
+                Log.warning("Environment cannot be null or empty!");
+                return null;
+            }
+
+            return switch (env.toLowerCase()) {
+                case "prod" -> "https://useinsider.com";
+                case "preprod" -> "https://preprod.useinsider.com";
+                case "cloud" -> "https://cloud.useinsider.com";
+                case "test" -> "https://test.useinsider.com";
+                default -> {
+                    Log.warning("Invalid environment provided: " + env);
+                    yield null;
+                }
+            };
+        }
+    }
+
 
     /**
      * This method is used to accept cookies.

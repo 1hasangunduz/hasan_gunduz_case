@@ -1,10 +1,11 @@
 package com.insider.base;
 
 import com.insider.listener.Listener;
+import com.insider.listener.RetryListener;
 import org.testng.ITestResult;
 import org.testng.annotations.*;
 
-@Listeners({Listener.class})
+@Listeners({Listener.class, RetryListener.class})
 public class BaseTest extends BasePage {
 
     public static final ThreadLocal<String> testNameTL = new ThreadLocal<>();

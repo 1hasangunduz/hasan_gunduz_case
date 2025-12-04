@@ -66,19 +66,24 @@ public class JobsPage extends BasePage {
 
     @Step("Select filter option '{value}' from '{filterName}' dropdown")
     public JobsPage selectFilterOption(WebElement filterDropdown, List<WebElement> options, String value, String filterName) {
+
         waitMs(3000);
         clickElement(filterDropdown, "Click on " + filterName + " filter dropdown");
-        for (WebElement option : options) {
-            scrollToElementBlockCenter(option);
-            if (getTextOfElement(option).trim().equals(value)) {
-                clickElement(option, "Select " + filterName + ": " + value);
-                return this;
-            }
-        }
 
-        Log.fail(filterName + " '" + value + "' not found in the dropdown list!");
+        options.stream()
+                .filter(option -> {
+                    scrollToElementBlockCenter(option);
+                    return getTextOfElement(option).trim().equals(value);
+                })
+                .findFirst()
+                .ifPresentOrElse(
+                        option -> clickElement(option, "Select " + filterName + ": " + value),
+                        () -> Log.fail("Option '" + value + "' not found in " + filterName + " filter!")
+                );
+
         return this;
     }
+
 
     @Step("Verify that the jobs list is displayed")
     public JobsPage verifyJobsListAppears() {
@@ -107,7 +112,7 @@ public class JobsPage extends BasePage {
     private void verifyListValues(List<WebElement> elements, String expectedValue, String fieldName) {
         for (WebElement element : elements) {
             var actualText = getTextOfElement(element).trim();
-            Assert.assertEquals(actualText, expectedValue,fieldName + " mismatch! Expected: " + expectedValue + ", Found: " + actualText);
+            Assert.assertEquals(actualText, expectedValue, fieldName + " mismatch! Expected: " + expectedValue + ", Found: " + actualText);
             Log.pass(fieldName + " matches: " + actualText);
         }
     }
@@ -131,17 +136,12 @@ public class JobsPage extends BasePage {
     public JobsPage clickViewRoleButtonsInLoop() {
 
         for (int i = 0; i < viewRoleButton.size(); i++) {
-
             var btn = viewRoleButton.get(i);
-
             hoverElement(btn, 1);
             clickElement(btn, "Click on view role button: index " + i);
             waitMs(500);
-
             switchToNewWindow();
-
             waitForUrlContains("jobs.lever.co/useinsider", 3);
-
             closeAllTabsExceptMain();
         }
 
